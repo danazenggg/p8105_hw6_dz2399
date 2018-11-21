@@ -18,7 +18,8 @@ df_homicide <- read_csv('./data/homicide_data.csv') %>%
   janitor::clean_names()%>%
   mutate(city_state = paste(city,state,sep = ',')) %>% 
   filter(city_state!='Dallas,TX'&city_state!='Phoenix,AZ'&city_state!='Kansas City,MO'&city_state!='Tulsa,AL') %>% 
-  mutate(victim_race = as.factor(victim_race),
+  mutate(resolved = as.numeric(disposition == "Closed by arrest"),
+         victim_race = as.factor(victim_race),
          victim_age = as.numeric(victim_age),
          victim_sex = as.factor(victim_sex)) %>% 
   mutate(victim_race = fct_recode(victim_race, 
@@ -27,14 +28,34 @@ df_homicide <- read_csv('./data/homicide_data.csv') %>%
                                   non_white='Hispanic',
                                   non_white='Other',
                                   non_white='Unknown',
-                                  white='White')) 
+                                  white='White')) %>% 
+  mutate(victim_race = fct_relevel(victim_race,'white'))
 ```
 
 ### Baltimore,MD
 ```{r}
-df_homicide %>% 
+glm.1 <- df_homicide %>% 
   filter(city_state=='Baltimore,MD') %>% 
-  glm()
+  select(resolved, victim_age, victim_race, victim_sex) %>% 
+  glm(resolved ~., data=., family = binomial()) 
+
+glm.1.sum <- broom::tidy(glm.1) %>% 
+  mutate(OR = exp(estimate)) %>%
+  rename(log_OR = estimate) %>%
+  select(term, log_OR , OR, p.value) 
+
+conf_int.1 <- exp(confint(glm.1))
+
+knitr::kable(cbind(glm.1.sum,conf_int.1)[,-1])
+
+```
+
+From this generalied linear model summary, we can conclude that homicides in which the victim is non-white are substantially less likely to be resolved that those in which the victim is white, the adjusted OR is 0.4406, 95%CI (0.312, 0.620).
+
+## Calculating OR and CI for each city
+```{r}
+adjusted.or <- function(x){
   
+}
 ```
 
