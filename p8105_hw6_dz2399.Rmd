@@ -13,7 +13,7 @@ library(purrr)
 
 ## Problem 1
 
-### tidy data
+#### Tidy data
 ```{r,message=F}
 df_homicide <- read_csv('./data/homicide_data.csv') %>%
   janitor::clean_names()%>%
@@ -33,7 +33,7 @@ df_homicide <- read_csv('./data/homicide_data.csv') %>%
   mutate(victim_race = fct_relevel(victim_race,'white'))
 ```
 
-### Baltimore,MD
+#### Baltimore,MD
 ```{r}
 glm.1 <- df_homicide %>% 
   filter(city_state=='Baltimore,MD') %>% 
@@ -53,7 +53,7 @@ knitr::kable(cbind(glm.1.sum,conf_int.1)[,-1])
 
 From this generalied linear model summary, we can conclude that homicides in which the victim is non-white are substantially less likely to be resolved that those in which the victim is white, the adjusted OR is 0.4406, 95%CI (0.312, 0.620).
 
-## Calculating OR and CI for each city
+#### Calculating OR and CI for each city
 ```{r,warning=F,message=F}
 adjusted.or <- function(x){
 
@@ -84,7 +84,11 @@ ggplot(df_all_or, aes(x=reorder(city_state, -OR),y=OR))+
   geom_errorbar(mapping=aes(x=city_state, ymin=low.conf, ymax=high.conf), width=0.1, size=1, color="black",alpha=.5)+
     coord_flip()+
   xlab('Cities')+
-  ylab('The adjusted OR with 95CI')+
+  ylab('The adjusted OR with 95%CI')+
   ggtitle('The adjusted OR with 95%CIs for each city')
 ```
+
+The smaller the adjusted OR suggests more race discrimination in resolving homicides. In this graph we can see that Boston has least race discrimination while Tempa has the highest. However, this trend cannot hold very strongly because some ORs are not statistically significant, probably due to small sample sizes. 
+
+
 
