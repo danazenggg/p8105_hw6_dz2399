@@ -9,6 +9,7 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(purrr)
+library(modelr)
 ```
 
 ## Problem 1
@@ -91,4 +92,55 @@ ggplot(df_all_or, aes(x=reorder(city_state, -OR),y=OR))+
 The smaller the adjusted OR suggests more race discrimination in resolving homicides. In this graph we can see that Boston has least race discrimination while Tempa has the highest. However, this trend cannot hold very strongly because some ORs are not statistically significant, probably due to small sample sizes. 
 
 
+## Problem 2
 
+#### Tidy Data
+```{r}
+df_children <- read_csv('./data/birthweight.csv') 
+```
+
+#### Proposing a regression model:
+$$
+\begin{aligned}
+weight =\beta_0 + \beta_1*babysex + \beta_2*bhead +\beta_3* blength+\beta_4* wtgain+ \beta_5* smoken
+\end{aligned}
+$$
+*  This model is based on a hypothesized structure for the factors that underly birthweight. It is hypothesized that both factors of the motehr and the child would affect the birth weight. Therefore, on the mother side, wtgain and smoken are selected to adjust for the effect from the mom. On the child side, both babysex, bhead, blength are selected to account for the child. 
+
+#### Testing the proposed model
+```{r}
+mod_1 <- lm(bwt~babysex + bhead + wtgain + wtgain+ smoken,data=df_children)
+
+df_children %>% 
+  modelr::add_predictions(mod_1) %>% 
+  modelr::add_residuals(mod_1) %>% 
+  ggplot(aes(x=pred,y=resid))+
+  geom_point(aes(alpha=.2))+
+  ggtitle('Residual plot for birthweight')
+```
+
+The plot of model residuals against fitted values shows that the error terms are residual values bounce around 0 (the expected value is 0). Residuals form a horizontal (linear) ‘band’ around zero: above and below (indication of equal variance). However, there are some ‘unusual’ values stand out from the random pattern on the left, which is an indication of potential outliers in the lower range of birthweight.
+
+Comparing the models
+```{r}
+mod_2 <- lm(bwt~blength+gaweeks,data=df_children)
+mod_3 <- lm(bwt~blength*bhead*babysex,data=df_children)
+
+df_children %>% 
+  crossv_mc(100) %>% 
+  mutate(train = map(train,as.tibble),
+         test = map(test, as.tibble)) %>% 
+  mutate(mod1_pred = map(train,~lm(bwt~babysex + bhead + wtgain + wtgain+ smoken,data=.x)),
+         mod2_pred = map(train, ~lm(bwt~blength+gaweeks,data=.x)),
+         mod3_pred = map(train, ~lm(bwt~blength*bhead*babysex,data=.x))) %>% 
+  mutate(rmse_model_1 = map2_dbl(mod1_pred,test, ~rmse(model = .x, data=.y)),
+         rmse_model_2 = map2_dbl(mod2_pred,test, ~rmse(model = .x, data=.y)),
+         rmse_model_3 = map2_dbl(mod3_pred,test, ~rmse(model = .x, data=.y))) %>% 
+  select(starts_with("rmse")) %>% 
+  gather(key = model, value = rmse) %>% 
+  mutate(model = str_replace(model, "rmse_", ""),
+         model = fct_inorder(model)) %>% 
+  ggplot(aes(x = model, y = rmse)) + geom_violin()
+```
+
+In this plot, we can observe that the model_3 has a much lower rmse that the other two, so model_3 is might be a better model compared to the other two.
