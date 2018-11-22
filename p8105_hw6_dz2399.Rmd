@@ -96,15 +96,21 @@ The smaller the adjusted OR suggests more race discrimination in resolving homic
 
 #### Tidy Data
 ```{r}
-df_children <- read_csv('./data/birthweight.csv') 
+df_children <- read_csv('./data/birthweight.csv') %>% 
+  janitor::clean_names() %>% 
+  mutate(babysex = as.factor(babysex))
+skimr::skim(df_children)
 ```
 
 #### Proposing a regression model:
+
 $$
 \begin{aligned}
 weight =\beta_0 + \beta_1*babysex + \beta_2*bhead +\beta_3* blength+\beta_4* wtgain+ \beta_5* smoken
 \end{aligned}
 $$
+
+
 *  This model is based on a hypothesized structure for the factors that underly birthweight. It is hypothesized that both factors of the motehr and the child would affect the birth weight. Therefore, on the mother side, wtgain and smoken are selected to adjust for the effect from the mom. On the child side, both babysex, bhead, blength are selected to account for the child. 
 
 #### Testing the proposed model
